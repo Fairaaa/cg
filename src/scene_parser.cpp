@@ -249,7 +249,7 @@ Material *SceneParser::parseMaterial() {
     assert (!strcmp(token, "{"));
     while (true) {
         getToken(token);
-        if (strcmp(token, "diffuseColor") == 0) {
+        if (strcmp(token, "diffuseColor") == 0 || strcmp(token, "color") == 0){
             diffuseColor = readVector3f();
         }
         else if (strcmp(token, "emission") == 0) {

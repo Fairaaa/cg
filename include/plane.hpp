@@ -18,7 +18,7 @@ public:
     }
 
     Plane(const Vector3f &normal, float d, Material *m) : Object3D(m) {
-        this->normal = normal;
+        this->normal = normal.normalized();
         this->d = d;
     }
 

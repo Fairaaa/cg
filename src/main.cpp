@@ -18,23 +18,37 @@
 #include <vector>
 
 
-# define samps 1000
+# define samps 200
 # define M_PI 3.14159265358979323846
 
 using namespace std;
 
-double get_random(std::mt19937 gen = std::mt19937(std::random_device()()))
+std::random_device rd;
+std::mt19937 gen(rd());
+std::uniform_real_distribution<double> distribution(0.0, 1.0);
+
+double get_random()
 {
-    std::uniform_real_distribution<double> distribution(0.0, 1.0);
     double random_number = distribution(gen);
-    assert (random_number >= 0.0 && random_number <= 1.0);
+    assert(random_number >= 0.0 && random_number <= 1.0);
     return random_number;
 }
+
+
+std::minstd_rand0 generator(1);
+double erand48(unsigned short Xi)
+{
+    generator.seed(Xi);
+    double random_number = generator() / 4294967296.0;
+    assert(random_number >= 0.0 && random_number <= 1.0);
+    return random_number;
+}
+
 
 bool RR(double p){ return get_random() < p; }
 
 
-Vector3f radiance(SceneParser* sceneParser, const Ray &camRay, int depth) {
+Vector3f radiance(SceneParser* sceneParser, const Ray &camRay, int depth, unsigned short *Xi) {
     depth++;
     double t;
     Group* group = sceneParser -> getGroup();
@@ -52,14 +66,18 @@ Vector3f radiance(SceneParser* sceneParser, const Ray &camRay, int depth) {
     normal = Vector3f::dot(camRay.getDirection(), normal) < 0 ? normal : normal * -1;
 
     Vector3f color = hit.getMaterial()->getDiffuseColor();
-    float p = color.getMax();
+    double p = color.getMax();
     assert(p > 0 && p <= 1.0);
 
     if(depth > 5)
     {
-        if(RR(p))
+        if(get_random() < p)
         {
             color = color * (1.0/p);
+            if (depth > 75)
+            {
+                return hit.getMaterial()->getEmission();
+            }
         }
         else
         {
@@ -75,11 +93,11 @@ Vector3f radiance(SceneParser* sceneParser, const Ray &camRay, int depth) {
         double r2 = get_random();
         double r2s = sqrt(r2);
         Vector3f w = normal;
-        float fabs_w_x = (float)w.x() > 0.0 ? w.x() : -w.x();
+        double fabs_w_x = (double)w.x() > 0.0 ? w.x() : -w.x();
         Vector3f u = Vector3f::cross(( fabs_w_x > 0.1 ? Vector3f(0, 1, 0) : Vector3f(1, 0, 0)), w).normalized();
         Vector3f v = Vector3f::cross(w, u);
         Vector3f d = (u * cos(r1) * r2s + v * sin(r1) * r2s + w * sqrt(1 - r2)).normalized();
-        return hit.getMaterial()->getEmission() + color * radiance(sceneParser, Ray(point, d), depth);
+        return hit.getMaterial()->getEmission() + color * radiance(sceneParser, Ray(point, d), depth, Xi);
     }
 
     // 镜面反射
@@ -87,7 +105,7 @@ Vector3f radiance(SceneParser* sceneParser, const Ray &camRay, int depth) {
     {
         // 镜面反射方向
         Vector3f spec_d = camRay.getDirection() - normal * 2 * Vector3f::dot(normal, camRay.getDirection());
-        return hit.getMaterial()->getEmission() + color * radiance(sceneParser, Ray(point, spec_d), depth);
+        return hit.getMaterial()->getEmission() + color * radiance(sceneParser, Ray(point, spec_d), depth, Xi);
     }
 
     // 折射
@@ -102,7 +120,7 @@ Vector3f radiance(SceneParser* sceneParser, const Ray &camRay, int depth) {
         float cos2t = 1 - nnt * nnt * (1 - ddn * ddn);
         if(cos2t < 0)
         {
-            return hit.getMaterial()->getEmission() + color * radiance(sceneParser, reflRay, depth);
+            return hit.getMaterial()->getEmission() + color * radiance(sceneParser, reflRay, depth, Xi);
         }
 
         Vector3f tdir = (camRay.getDirection() * nnt - normal * ((into ? 1 : -1) * (ddn * nnt + sqrt(cos2t)))).normalized();
@@ -118,18 +136,18 @@ Vector3f radiance(SceneParser* sceneParser, const Ray &camRay, int depth) {
 
         if(depth > 2)
         {
-            if(RR(P))
+            if(get_random() < P)
             {
-                return hit.getMaterial()->getEmission() + color * radiance(sceneParser, reflRay, depth) * RP;
+                return hit.getMaterial()->getEmission() + color * radiance(sceneParser, reflRay, depth, Xi) * RP;
             }
             else
             {
-                return hit.getMaterial()->getEmission() + color * radiance(sceneParser, Ray(point, tdir), depth) * TP;
+                return hit.getMaterial()->getEmission() + color * radiance(sceneParser, Ray(point, tdir), depth, Xi) * TP;
             }
         }
         else
         {
-            return hit.getMaterial()->getEmission() + color * (radiance(sceneParser, reflRay, depth) * Re + radiance(sceneParser, Ray(point, tdir), depth) * Tr);
+            return hit.getMaterial()->getEmission() + color * (radiance(sceneParser, reflRay, depth, Xi) * Re + radiance(sceneParser, Ray(point, tdir), depth, Xi) * Tr);
         }
     }
     return Vector3f::ZERO;
@@ -149,25 +167,20 @@ int main(int argc, char *argv[]) {
     string inputFile = argv[1];
     string outputFile = argv[2];  // only bmp is allowed.
 
-    // TODO: Main RayCasting Logic
-    // First, parse the scene using SceneParser.
-    // Then loop over each pixel in the image, shooting a ray
-    // through that pixel and finding its intersection with
-    // the scene.  Write the color at the intersection to that
-    // pixel in your output image.
-
     cout << "start reading" << endl;
     SceneParser sceneParser(inputFile.c_str());
     Camera *camera = sceneParser.getCamera();
     Image *image = new Image(camera->getWidth(), camera->getHeight());
 
     cout << "start drawing" << endl;
+    float startT = clock();
     //  框架
     for(int x = 0; x < camera->getWidth(); ++x)
     {
-
+        #pragma omp parallel for schedule(dynamic) 
         for(int y = 0; y < camera-> getHeight(); ++y)
         {
+            unsigned short Xi[3] = {0, 0, static_cast<unsigned short>(y * y * y)};
             Vector3f color = Vector3f::ZERO;
 
             vector<pair<double, double>> dots; // 采样点
@@ -189,12 +202,10 @@ int main(int argc, char *argv[]) {
                     dx = (item.first + 0.5 + dx) / 2.0;
                     dy = (item.second + 0.5 + dy) / 2.0;
 
-
-
                     Ray camRay = camera -> generateRay(Vector2f((x + dx), (y + dy)));
 
-                    Vector3f r = radiance(&sceneParser, camRay, 0) * (1.0 / samps);
-                    color += r;
+                    Vector3f r = radiance(&sceneParser, camRay, 0,Xi) * (1.0 / samps);
+                    color += r.clamp();
                 }
             }
             color = color / 4.0;
@@ -204,8 +215,11 @@ int main(int argc, char *argv[]) {
 
     image->SaveImage(outputFile.c_str());
 
+    float endT = clock();
+
 
     cout << "Hello! Computer Graphics!" << endl;
+    cout << "Time cost: " << (endT - startT) / CLOCKS_PER_SEC << "s" << endl;
     return 0;
 }
 

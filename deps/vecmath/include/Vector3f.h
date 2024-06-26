@@ -1,6 +1,7 @@
 #ifndef VECTOR_3F_H
 #define VECTOR_3F_H
 
+#include<random>
 class Vector2f;
 
 class Vector3f
@@ -112,5 +113,12 @@ Vector3f operator / ( const Vector3f& v, float f );
 
 bool operator == ( const Vector3f& v0, const Vector3f& v1 );
 bool operator != ( const Vector3f& v0, const Vector3f& v1 );
+
+// Vector3f random3f_unit(){
+// 	float x = (float)rand() / RAND_MAX;
+// 	float y = (float)rand() / RAND_MAX;
+// 	float z = (float)rand() / RAND_MAX;
+// 	return Vector3f(x, y, z).normalized();
+// }
 
 #endif // VECTOR_3F_H
