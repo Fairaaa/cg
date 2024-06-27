@@ -25,28 +25,25 @@ Materials {
     Material { 
         diffuseColor 0.690196 0.34902 0.137255
         type DIFF
-        emission 0.690196 0.34902 0.137255
     }
     Material {
         diffuseColor 0.4 0.52 0.12
         type DIFF
-        emission 0 0 0
     }
     Material {
         diffuseColor 0 0.184314 0.654902
         type SPEC
+        specularColor 0.6 0.6 0.6
+        shininess 2        
     }
     Material {
-        diffuseColor 0.6 0.3 0.2 
+        diffuseColor 0.6 0.3 0.8 
         type REFR
         refraction 1.5
     }
     Material {
-        diffuseColor 0.003922 0.517647 0.498039
+        diffuseColor 0.03922 0.517647 0.498039
         type DIFF
-        emission 0 0 0
-        specularColor 0.1 0.6 0.2
-        shininess 2
     }
 }
 

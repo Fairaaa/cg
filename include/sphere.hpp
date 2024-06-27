@@ -52,11 +52,8 @@ public:
             if(Vector3f::dot(co,ray_dir) < 0) t = dis_cd + dis_h;
             else t = dis_cd - dis_h;
         }
-        // 光源在球体外部
-        else
-        {
-            t = dis_cd - dis_h;
-        }
+        // 光源在球体外部 找到更近交点
+        else t = dis_cd - dis_h;
         // 交点
         if(flag)
         {

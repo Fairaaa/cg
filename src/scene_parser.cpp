@@ -243,8 +243,8 @@ Material *SceneParser::parseMaterial() {
 
 
     Type refl = DIFF;
-    Vector3f diffuseColor(1, 1, 1), specularColor(0, 0, 0), emission(0, 0, 0);
-    float shininess = 0.0;
+    Vector3f diffuseColor(1, 1, 1), specularColor(1, 1, 1), emission(0, 0, 0);
+    float shininess = 1000.0;
     float refraction = 1.0;
 
     getToken(token);
@@ -253,6 +253,15 @@ Material *SceneParser::parseMaterial() {
         getToken(token);
         if (strcmp(token, "diffuseColor") == 0 || strcmp(token, "color") == 0){
             diffuseColor = readVector3f();
+        }
+        else if (strcmp(token, "texture") == 0) {
+            // Optional: read in texture and draw it.
+            getToken(filename);
+            string texture_file = filename;
+            getToken(token);
+            assert (!strcmp(token, "}"));
+            auto *answer = new Material(texture_file);
+            return answer;
         }
         else if (strcmp(token, "type") == 0) {
             getToken(token);
@@ -264,9 +273,12 @@ Material *SceneParser::parseMaterial() {
                 if(!strcmp(token, "}")) break;
                 if(!strcmp(token, "emission")) {
                     emission = readVector3f();
-                    getToken(token);
-                    if(!strcmp(token, "}")) break;
                 }
+            }
+            // 完全镜面反射
+            else if (strcmp(token, "SPEC") == 0) {
+                refl = SPEC;
+                getToken(token); if(!strcmp(token, "}")) break;
                 if(!strcmp(token, "specularColor")) {
                     specularColor = readVector3f();
                     getToken(token);
@@ -278,10 +290,6 @@ Material *SceneParser::parseMaterial() {
                     if(!strcmp(token, "}")) break;
                 }
             }
-            // 完全镜面反射
-            else if (strcmp(token, "SPEC") == 0) {
-                refl = SPEC;
-            }
             else if (strcmp(token, "REFR") == 0) {
                 refl = REFR;
                 getToken(token);
@@ -292,10 +300,6 @@ Material *SceneParser::parseMaterial() {
             else {
                 assert(!strcmp(token, "}"));
             }
-        }
-        else if (strcmp(token, "texture") == 0) {
-            // Optional: read in texture and draw it.
-            getToken(filename);
         }
         else {
             assert (!strcmp(token, "}"));

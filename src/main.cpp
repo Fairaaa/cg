@@ -20,7 +20,7 @@
 
 // # define samps 1000
 # define M_PI 3.14159265358979323846
-# define epi 1e-7
+# define epi 1e-6
 
 using namespace std;
 
@@ -53,17 +53,19 @@ Vector3f radiance(SceneParser* sceneParser, const Ray &camRay, int depth, unsign
     Vector3f normal = hit.getNormal();
     normal = Vector3f::dot(camRay.getDirection(), normal) < 0 ? normal : normal * -1;
 
-    Vector3f color = hit.getMaterial()->getDiffuseColor();
+    Vector3f color = hit.getMaterial()->isTexture ? hit.getMaterial()->getTexColor(point) : hit.getMaterial()->getDiffuseColor();
+    
+
     double p = color.getMax();
     assert(p > 0 && p <= 1.0);
 
-    // 递归终止于漫反射：找到光源或者递归深度大于5且概率小于p
+    // 找到光源或者递归深度大于5且概率小于p
     if(depth > 5)
     {
         if(RR(p))
         {
             color = color * (1.0/p);
-            // if(color.getMax() < epi || depth > 200) return hit.getMaterial()->getEmission();
+            if(color.getMax() < epi || depth > 100) return hit.getMaterial()->getEmission();
         }
         // 是光源则返回光源颜色 否则返回黑色
         else return hit.getMaterial()->getEmission();
@@ -114,25 +116,63 @@ Vector3f radiance(SceneParser* sceneParser, const Ray &camRay, int depth, unsign
     {
         // 镜面反射方向
         Vector3f spec_d = camRay.getDirection() - normal * 2 * Vector3f::dot(normal, camRay.getDirection());
-        return hit.getMaterial()->getEmission() + color * radiance(sceneParser, Ray(point, spec_d), depth, Xi);
+
+        // NEE计算直接光照贡献
+        Vector3f directcolor = Vector3f::ZERO;
+        for(int li = 0; li < sceneParser->getNumLights(); ++li)
+        {
+            Light *light = sceneParser->getLight(li);
+            Vector3f lightDir, lightColor;
+            light->getIllumination(point, lightDir, lightColor);
+            float cosTheta = Vector3f::dot(normal, lightDir);
+            if(cosTheta > 0)
+            {
+                Hit shadowHit;
+                Ray shadowRay = Ray(point, lightDir);
+                bool isShadow = group->intersect(shadowRay, shadowHit, epi);
+                if(!isShadow || shadowHit.getT() > 1)
+                {
+                    // 光源对镜面反射的贡献
+                    Vector3f N = normal;
+                    Vector3f L = lightDir;
+                    // Vector3f R = 2 * Vector3f::dot(N, L) * N - L;
+                    Vector3f H = (L + camRay.getDirection()).normalized();
+
+                    directcolor += lightColor * hit.getMaterial()->getSpecular() * pow(std::max(0.0f, Vector3f::dot(N,H)), hit.getMaterial()->getShine()) * cosTheta / M_PI;
+                }
+            }
+        }
+        Vector3f indirectcolor = radiance(sceneParser, Ray(point, spec_d), depth, Xi);
+        return hit.getMaterial()->getEmission() + color * (directcolor + indirectcolor);
     }
 
     // 折射
     else if (hit.getMaterial()->getRefl() == REFR)
     {
+        // 计算反射光线
         Ray reflRay = Ray(point, camRay.getDirection() - normal * 2 * Vector3f::dot(normal, camRay.getDirection()));
-        bool into = Vector3f::dot(normal, reflRay.getDirection()) > 0;
+        
+        // 判断是从外部还是从内部进入物体
+        bool into = Vector3f::dot(normal, reflRay.getDirection()) > 0; 
+        
+        // 设置折射率
         float nc = 1;
         float nt = hit.getMaterial()->getRefraction();
         float nnt = into ? nc / nt : nt / nc;
         float ddn = Vector3f::dot(camRay.getDirection(), normal);
+        
+        // 判断是否发生全反射
         float cos2t = 1 - nnt * nnt * (1 - ddn * ddn);
         if(cos2t < 0)
         {
+            // 发生全反射,只计算反射光线的贡献
             return hit.getMaterial()->getEmission() + color * radiance(sceneParser, reflRay, depth, Xi);
         }
 
+        // 计算折射光线方向
         Vector3f tdir = (camRay.getDirection() * nnt - normal * ((into ? 1 : -1) * (ddn * nnt + sqrt(cos2t)))).normalized();
+        
+        // 计算菲涅尔反射率
         float a = nt - nc;
         float b = nt + nc;
         float R0 = a * a / (b * b);
@@ -143,20 +183,44 @@ Vector3f radiance(SceneParser* sceneParser, const Ray &camRay, int depth, unsign
         float RP = Re / P;
         float TP = Tr / (1 - P);
 
+        // 计算直接光照贡献
+        Vector3f directColor = Vector3f::ZERO;
+        for(int li = 0; li < sceneParser->getNumLights(); ++li)
+        {
+            Light* light = sceneParser->getLight(li);
+            Vector3f lightDir, lightColor;
+            light->getIllumination(point, lightDir, lightColor);
+            float cosTheta = Vector3f::dot(normal.normalized(), lightDir);
+            if(cosTheta > 0)
+            {
+                // 检查是否有阴影
+                Hit shadowHit;
+                Ray shadowRay = Ray(point, lightDir);
+                bool isShadow = group->intersect(shadowRay, shadowHit, epi);
+                if(!isShadow || shadowHit.getT() > 1)
+                {
+                    // 计算折射后的镜面反射贡献
+                    Vector3f H = (lightDir + tdir).normalized();
+                    directColor += lightColor * hit.getMaterial()->getSpecular() * pow(std::max(0.0f, Vector3f::dot(normal.normalized(), H)), hit.getMaterial()->getShine()) * cosTheta / M_PI;
+                }
+            }
+        }
+
+        // 根据俄罗斯轮盘赌确定是反射还是折射
         if(depth > 2)
         {
             if(get_random() < P)
             {
-                return hit.getMaterial()->getEmission() + color * radiance(sceneParser, reflRay, depth, Xi) * RP;
+                return hit.getMaterial()->getEmission() + color * (directColor + radiance(sceneParser, reflRay, depth, Xi) * RP);
             }
             else
             {
-                return hit.getMaterial()->getEmission() + color * radiance(sceneParser, Ray(point, tdir), depth, Xi) * TP;
+                return hit.getMaterial()->getEmission() + color * (directColor + radiance(sceneParser, Ray(point, tdir), depth, Xi) * TP);
             }
         }
         else
         {
-            return hit.getMaterial()->getEmission() + color * (radiance(sceneParser, reflRay, depth, Xi) * Re + radiance(sceneParser, Ray(point, tdir), depth, Xi) * Tr);
+            return hit.getMaterial()->getEmission() + color * (directColor + (radiance(sceneParser, reflRay, depth, Xi) * Re + radiance(sceneParser, Ray(point, tdir), depth, Xi) * Tr));
         }
     }
     return Vector3f::ZERO;
@@ -191,6 +255,8 @@ int main(int argc, char *argv[]) {
         for(int y = 0; y < camera-> getHeight(); ++y)
         {
             unsigned short Xi[3] = {0, 0, static_cast<unsigned short>(y * y * y)};
+
+            // 采样
             Vector3f color = Vector3f::ZERO;
 
             vector<pair<double, double>> dots; // 采样点
