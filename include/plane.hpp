@@ -26,7 +26,13 @@ public:
 
     bool intersect(const Ray &r, Hit &h, float tmin) override {
         // 判断光线是否和平面相交
-        float t = (d + Vector3f::dot(normal, r.getOrigin())) / Vector3f::dot(normal, r.getDirection());
+        float cos = Vector3f::dot(normal, r.getDirection());
+        if(cos >= 1e-4) {
+            return false;
+        }
+        cos = -cos;
+        // Ax + By + Cz - D = 0
+        float t = ((Vector3f::dot(normal, r.getOrigin()) - d) / cos);
         if(t > tmin && t < h.getT()) {
             h.set(t, material, normal);
             return true;
@@ -42,5 +48,3 @@ protected:
 };
 
 #endif //PLANE_H
-		
-

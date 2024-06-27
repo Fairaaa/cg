@@ -9,11 +9,7 @@ PerspectiveCamera {
 }
 
 Lights {
-    numLights 1
-    PointLight {
-        position 0 5 5
-        color 0.5 0.5 0.5 
-    }
+    numLights 0
 }
 
 Background {
@@ -21,57 +17,43 @@ Background {
 }
 
 Materials {
-    numMaterials 5
+    numMaterials 6
     PhongMaterial {
-      type DIFF
-      color 0.3 0.9 0.3
-      emission 1 1 1
-    }
-    PhongMaterial {
+        color 0.75 0.75 0.75
         type DIFF
-        color 0.1 0.8 0.8
-        emission 0 0 0
     }
     PhongMaterial {
+        color 0.75 0.25 0.25
         type DIFF
-        color 0.8 0.8 0.8
-        emission 0.8 0.8 0.8
     }
     PhongMaterial {
+        color 0.25 0.25 0.75
+        type DIFF
+    }
+    PhongMaterial {
+        color 1 1 1
+        type DIFF
+        emission 12 12 12
+    }
+    PhongMaterial {
+        color 0.5 0.5 0.5
         type SPEC
-        color 1 1 0
-        emission 0 0 0
     }
     PhongMaterial {
-        type DIFF
-        color 0.8 0.2 0.2
-        emission 0 0 0
+        color 0.4 0.84314 0.654902
+        type REFR
+        refraction 1.5
     }
 }
 
 Group {
-    numObjects 6
+    numObjects 8
     MaterialIndex 0
     Plane {
-        normal 0 1 0
-        offset -2
+        normal 0 0 1
+        offset -10
     }
     MaterialIndex 1
-    Plane {
-        normal 0 1 0
-        offset 2
-    }
-    MaterialIndex 2
-    Plane {
-        normal 0 0 1
-        offset -27
-    }
-    MaterialIndex 3
-    Sphere {
-	center 1 1 1 
-        radius 0.75
-    }
-    MaterialIndex 4
     Plane {
         normal 1 0 0
         offset -2
@@ -80,6 +62,29 @@ Group {
         normal -1 0 0
         offset -2
     }
-    
+    MaterialIndex 2
+    Plane {
+	normal 0 1 0
+        offset -2
+    }
+    Plane {
+        normal 0 -1 0
+        offset -2
+    }
+    MaterialIndex 3
+    Sphere {
+	center 0 3 0
+        radius 1.25
+    }
+    MaterialIndex 4
+    Sphere {
+        center 0.5 -1 1
+        radius 1.1
+    }
+    MaterialIndex 5
+    Sphere {
+        center -1 1 0
+        radius 0.75
+    }
 }
 

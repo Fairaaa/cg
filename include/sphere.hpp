@@ -34,6 +34,8 @@ public:
         float ray_d = Vector3f::dot(r.getDirection(), ray_dir);
         // 是否发生变换
         bool flag = (ray_d != 1);
+
+        // 光源到球心的向量
         Vector3f co = center - r.getOrigin();
         float dis_cd = Vector3f::dot(co, ray_dir); 
         float dis_od = Vector3f::dot(co, co) - dis_cd * dis_cd; // od距离的平方
@@ -44,10 +46,13 @@ public:
         // 找到最近交点
         float dis_h = sqrt(radius * radius - dis_od);
         float t;
+        // 光源在球体内部
         if(Vector3f::dot(co, co) < radius * radius)
         {
-            t = dis_cd + dis_h;
+            if(Vector3f::dot(co,ray_dir) < 0) t = dis_cd + dis_h;
+            else t = dis_cd - dis_h;
         }
+        // 光源在球体外部
         else
         {
             t = dis_cd - dis_h;

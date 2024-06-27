@@ -20,6 +20,7 @@
 
 # define samps 200
 # define M_PI 3.14159265358979323846
+# define epi 1e-7
 
 using namespace std;
 
@@ -33,20 +34,7 @@ double get_random()
     assert(random_number >= 0.0 && random_number <= 1.0);
     return random_number;
 }
-
-
-std::minstd_rand0 generator(1);
-double erand48(unsigned short Xi)
-{
-    generator.seed(Xi);
-    double random_number = generator() / 4294967296.0;
-    assert(random_number >= 0.0 && random_number <= 1.0);
-    return random_number;
-}
-
-
 bool RR(double p){ return get_random() < p; }
-
 
 Vector3f radiance(SceneParser* sceneParser, const Ray &camRay, int depth, unsigned short *Xi) {
     depth++;
@@ -54,7 +42,7 @@ Vector3f radiance(SceneParser* sceneParser, const Ray &camRay, int depth, unsign
     Group* group = sceneParser -> getGroup();
     Hit hit;
 
-    bool isIntersect = group->intersect(camRay, hit, 0);
+    bool isIntersect = group->intersect(camRay, hit, epi);
     if(!isIntersect)
     {
         return sceneParser -> getBackgroundColor();
@@ -69,39 +57,56 @@ Vector3f radiance(SceneParser* sceneParser, const Ray &camRay, int depth, unsign
     double p = color.getMax();
     assert(p > 0 && p <= 1.0);
 
+    // 递归终止于漫反射：找到光源或者递归深度大于5且概率小于p
     if(depth > 5)
     {
-        if(get_random() < p)
+        if(RR(p))
         {
             color = color * (1.0/p);
-            if(color.x() <= 1e-4 && color.y() <= 1e-4 && color.z() <= 1e-4)
-            {
-                return hit.getMaterial()->getEmission();
-            }
-            if (depth > 75)
-            {
-                return hit.getMaterial()->getEmission();
-            }
+            // if(color.getMax() < epi || depth > 200) return hit.getMaterial()->getEmission();
         }
-        else
-        {
-            // 是光源则返回光源颜色 否则返回黑色
-            return hit.getMaterial()->getEmission();
-        }
+        // 是光源则返回光源颜色 否则返回黑色
+        else return hit.getMaterial()->getEmission();
     }
 
     // 漫反射
     if(hit.getMaterial()->getRefl() == DIFF)
     {
+        Vector3f indirectcolor = Vector3f::ZERO;
         double r1 = 2 * M_PI * get_random();
         double r2 = get_random();
         double r2s = sqrt(r2);
         Vector3f w = normal;
         double fabs_w_x = (double)w.x() > 0.0 ? w.x() : -w.x();
-        Vector3f u = Vector3f::cross(( fabs_w_x > 0.1 ? Vector3f(0, 1, 0) : Vector3f(1, 0, 0)), w).normalized();
+        Vector3f u = Vector3f::cross(( fabs_w_x > 0.1 ? Vector3f(0, 0, 1) : Vector3f(1, 0, 0)), w).normalized();
         Vector3f v = Vector3f::cross(w, u);
         Vector3f d = (u * cos(r1) * r2s + v * sin(r1) * r2s + w * sqrt(1 - r2)).normalized();
-        return hit.getMaterial()->getEmission() + color * radiance(sceneParser, Ray(point, d), depth, Xi);
+
+        // 采样直接光照
+        Vector3f directcolor = Vector3f::ZERO;
+        for(int li = 0; li < sceneParser->getNumLights(); ++li)
+        {
+            Light *light = sceneParser->getLight(li);
+            Vector3f lightDir, lightColor;
+            light->getIllumination(point, lightDir, lightColor);
+            // directcolor += hit.getMaterial()->Shade(camRay, hit, lightDir, lightColor);
+
+            // 使用BRDF计算直接光照
+            float cosTheta = Vector3f::dot(normal, lightDir);
+            if(cosTheta > 0)
+            {
+                Hit shadowHit;
+                Ray shadowRay = Ray(point, lightDir);
+                bool isShadow = group->intersect(shadowRay, shadowHit, epi);
+                if(!isShadow || shadowHit.getT() > 1)
+                {
+                    directcolor += color * lightColor * cosTheta * M_PI;
+                }
+            }
+        }
+        // 间接光照
+        indirectcolor += radiance(sceneParser, Ray(point, d), depth, Xi);
+        return hit.getMaterial()->getEmission() + color * (directcolor + indirectcolor);
     }
 
     // 镜面反射

@@ -22,30 +22,36 @@ Background {
 
 Materials {
     numMaterials 5
-    Material { diffuseColor 1 0 0 
-      type DIFF
-      refraction 1.2
+    Material { 
+        diffuseColor 0.690196 0.34902 0.137255
+        type DIFF
+        emission 0.690196 0.34902 0.137255
     }
-    Material { diffuseColor 0.5 0.5 0.5 
-    type DIFF
-    emission 1 1 1
+    Material {
+        diffuseColor 0.4 0.52 0.12
+        type DIFF
+        emission 0 0 0
     }
-    Material { diffuseColor 0 0.1 1 
-    type SPEC
-    emission 0 0 0
+    Material {
+        diffuseColor 0 0.184314 0.654902
+        type SPEC
     }
-    Material { diffuseColor 0.6 0.3 0.2 
-    type DIFF
-    refraction 1.5
+    Material {
+        diffuseColor 0.6 0.3 0.2 
+        type REFR
+        refraction 1.5
     }
-    Material { diffuseColor 0.1 0.6 0.2 
-    type DIFF
-    emission 0 0 0
+    Material {
+        diffuseColor 0.003922 0.517647 0.498039
+        type DIFF
+        emission 0 0 0
+        specularColor 0.1 0.6 0.2
+        shininess 2
     }
 }
 
 Group {
-    numObjects 6
+    numObjects 5
     MaterialIndex 0
     Sphere {
 	center 0 0 0
@@ -67,10 +73,6 @@ Group {
         radius 0.75 
     }
     MaterialIndex 4
-    Plane {
-    normal 3 0 -1
-        offset -5
-    }
     Sphere {
 	center -1 1 -1 
         radius 0.75

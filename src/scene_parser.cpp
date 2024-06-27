@@ -220,6 +220,7 @@ void SceneParser::parseMaterials() {
     // read in the objects
     int count = 0;
     while (num_materials > count) {
+        // printf("count: %d\n", count);
         getToken(token);
         if (!strcmp(token, "Material") ||
             !strcmp(token, "PhongMaterial")) {
@@ -240,10 +241,10 @@ Material *SceneParser::parseMaterial() {
     char filename[MAX_PARSER_TOKEN_LENGTH];
     filename[0] = 0;
 
-    
-    Vector3f diffuseColor(1, 1, 1), specularColor(0, 0, 0), emission(0, 0, 0);
-    float shininess = 0;
+
     Type refl = DIFF;
+    Vector3f diffuseColor(1, 1, 1), specularColor(0, 0, 0), emission(0, 0, 0);
+    float shininess = 0.0;
     float refraction = 1.0;
 
     getToken(token);
@@ -253,34 +254,44 @@ Material *SceneParser::parseMaterial() {
         if (strcmp(token, "diffuseColor") == 0 || strcmp(token, "color") == 0){
             diffuseColor = readVector3f();
         }
-        else if (strcmp(token, "emission") == 0) {
-            emission = readVector3f();
-        }
         else if (strcmp(token, "type") == 0) {
             getToken(token);
+            // 漫反射材质
             if (strcmp(token, "DIFF") == 0) {
                 refl = DIFF;
+                // shiness specularColor emission都是可选项
+                getToken(token);
+                if(!strcmp(token, "}")) break;
+                if(!strcmp(token, "emission")) {
+                    emission = readVector3f();
+                    getToken(token);
+                    if(!strcmp(token, "}")) break;
+                }
+                if(!strcmp(token, "specularColor")) {
+                    specularColor = readVector3f();
+                    getToken(token);
+                    if(!strcmp(token, "}")) break;
+                }
+                if(!strcmp(token, "shininess")) {
+                    shininess = readFloat();
+                    getToken(token);
+                    if(!strcmp(token, "}")) break;
+                }
             }
+            // 完全镜面反射
             else if (strcmp(token, "SPEC") == 0) {
                 refl = SPEC;
             }
             else if (strcmp(token, "REFR") == 0) {
                 refl = REFR;
+                getToken(token);
+                // 折射率默认为1.0
+                assert(!strcmp(token,"refraction"));
+                refraction = readFloat();
             }
             else {
-                printf("Unknown token in parseMate: '%s'\n", token);
-                exit(0);
+                assert(!strcmp(token, "}"));
             }
-        }
-        else if (strcmp(token, "specularColor") == 0) {
-            specularColor = readVector3f();
-        }
-        else if (strcmp(token, "shininess") == 0) {
-            shininess = readFloat();
-        }
-        else if (strcmp(token, "refraction") == 0) {
-            // Optional: read in refraction index
-            refraction = readFloat();
         }
         else if (strcmp(token, "texture") == 0) {
             // Optional: read in texture and draw it.
@@ -291,7 +302,7 @@ Material *SceneParser::parseMaterial() {
             break;
         }
     }
-    auto *answer = new Material(diffuseColor, refl, emission, refraction);
+    auto *answer = new Material(diffuseColor, refl, specularColor, shininess, emission, refraction);
     return answer;
 }
 
