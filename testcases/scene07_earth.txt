@@ -4,8 +4,8 @@ PerspectiveCamera {
     direction 0 0 -1
     up 0 1 0
     angle 30
-    width 200
-    height 200
+    width 400
+    height 400
 }
 
 Lights {
@@ -17,13 +17,13 @@ Background {
 }
 
 Materials {
-    numMaterials 7
+    numMaterials 8
     PhongMaterial {
-        color 0.75 0.25 0.25
+        color 0.75 0.75 0.75
         type DIFF
     }
     PhongMaterial {
-        color 0.75 0.75 0.75
+        color 0.75 0.25 0.25
         type DIFF
     }
     PhongMaterial {
@@ -33,14 +33,18 @@ Materials {
     PhongMaterial {
         color 1 1 1
         type DIFF
-        emission 50 50 50
+        emission 12 12 12
     }
     PhongMaterial {
-        color 0.5 0.5 0.5
+        color 0 0 0
+        type DIFF
+    }
+    PhongMaterial {
+        color 0.999 0.999 0.999
         type SPEC
     }
     PhongMaterial {
-        color 0.4 0.84314 0.654902
+        color 0.999 0.999 0.999
         type REFR
         refraction 1.5
     }
@@ -50,22 +54,12 @@ Materials {
 }
 
 Group {
-    numObjects 9
+    numObjects 8
     MaterialIndex 0
     Plane {
         normal 0 0 1
-        offset -10
+        offset -3
     }
-    MaterialIndex 1
-    Plane {
-        normal 1 0 0
-        offset -2
-    }
-    Plane {
-        normal -1 0 0
-        offset -2
-    }
-    MaterialIndex 2
     Plane {
 	normal 0 1 0
         offset -2
@@ -74,25 +68,30 @@ Group {
         normal 0 -1 0
         offset -2
     }
+    MaterialIndex 1
+    Plane {
+        normal 1 0 0
+        offset -2
+    }
+    MaterialIndex 2
+    Plane {
+        normal -1 0 0
+        offset -2
+    }
     MaterialIndex 3
     Sphere {
-	center 0 3 0
-        radius 1.25
+	center 0 5 0
+        radius 3.25
     }
     MaterialIndex 4
-    Sphere {
-        center 0.5 -1 1
-        radius 1.1
+    Plane {
+        normal 0 0 -1
+        offset -10
     }
-    MaterialIndex 5
+    MaterialIndex 7
     Sphere {
-        center -1 1 0
-        radius 0.75
-    }
-    MaterialIndex 6
-    Sphere {
-        center -1 -1 1
-        radius 0.75
+        center 0 0 0
+        radius 1.2
     }
 }
 

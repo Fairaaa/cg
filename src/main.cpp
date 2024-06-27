@@ -279,9 +279,33 @@ int main(int argc, char *argv[]) {
                     dy = (item.second + 0.5 + dy) / 2.0;
 
                     Ray camRay = camera -> generateRay(Vector2f((x + dx), (y + dy)));
+                    // 产生光线
+                    if(camera->getFocal() > 0){
+                        // 计算光线到焦平面的交点p
+                        float tp = camera->getFocal() / Vector3f::dot(camRay.getDirection(), camera->getDirection());
+                        Vector3f p = camRay.pointAtParameter(tp);
 
-                    Vector3f r = radiance(&sceneParser, camRay, 0,Xi) * (1.0 / samps);
-                    color += r.clamp();
+                        // 根据光圈大小对相机视点随机偏移
+                        for(int i = 0; i < 10; i++)
+                        {
+                            // 随机方向
+                            float r1 = 2 * M_PI * get_random();
+                            // 随机距离
+                            float r2 = get_random();
+                            float dx = sqrt(r2) * camera->getAperture() * cos(r1);
+                            float dy = sqrt(r2) * camera->getAperture() * sin(r1);
+                            Vector3f newCenter = camera->getCenter() + camera->getHorizontal() * dx/2 + camera->getUp() * dy/2;
+                            Vector3f newDir = (p - newCenter).normalized();
+                            Ray newRay = Ray(newCenter, newDir);
+                            Vector3f r = radiance(&sceneParser, newRay, 0, Xi) * (1.0 / 10) * (1.0 / samps);
+                            color += r.clamp();
+                        }
+                    }
+                    else
+                    {
+                        Vector3f r = radiance(&sceneParser, camRay, 0,Xi) * (1.0 / samps);
+                        color += r.clamp();                        
+                    }
                 }
             }
             color = color / 4.0;

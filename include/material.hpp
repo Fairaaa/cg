@@ -84,14 +84,14 @@ public:
         // point转化为（-1，-1,1）下半径为0.75的球的坐标
         // U 坐标对应球体表面的水平位置
         // V 坐标对应球体表面的垂直位置
-        Vector3f center = Vector3f(-1, -1, 1);
-        float radius = 0.75;
+        Vector3f center = Vector3f(0, 0, 0);
+        float radius = 1.2;
 
         Vector3f p = point - center;
         float phi = atan2(p.z(), p.x());
         float theta = asin(p.y() / radius);
         float u = 1 - (phi + M_PI) / (2 * M_PI);
-        float v = (theta + M_PI / 2) / M_PI;
+        float v = 1 - (theta + M_PI / 2) / M_PI;
 
         assert(u >= 0 && u <= 1);
         assert(v >= 0 && v <= 1);
