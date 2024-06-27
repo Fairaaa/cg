@@ -74,6 +74,10 @@ Vector3f radiance(SceneParser* sceneParser, const Ray &camRay, int depth, unsign
         if(get_random() < p)
         {
             color = color * (1.0/p);
+            if(color.x() <= 1e-4 && color.y() <= 1e-4 && color.z() <= 1e-4)
+            {
+                return hit.getMaterial()->getEmission();
+            }
             if (depth > 75)
             {
                 return hit.getMaterial()->getEmission();
@@ -114,7 +118,7 @@ Vector3f radiance(SceneParser* sceneParser, const Ray &camRay, int depth, unsign
         Ray reflRay = Ray(point, camRay.getDirection() - normal * 2 * Vector3f::dot(normal, camRay.getDirection()));
         bool into = Vector3f::dot(normal, reflRay.getDirection()) > 0;
         float nc = 1;
-        float nt = 1.5;
+        float nt = hit.getMaterial()->getRefraction();
         float nnt = into ? nc / nt : nt / nc;
         float ddn = Vector3f::dot(camRay.getDirection(), normal);
         float cos2t = 1 - nnt * nnt * (1 - ddn * ddn);

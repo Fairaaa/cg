@@ -244,6 +244,7 @@ Material *SceneParser::parseMaterial() {
     Vector3f diffuseColor(1, 1, 1), specularColor(0, 0, 0), emission(0, 0, 0);
     float shininess = 0;
     Type refl = DIFF;
+    float refraction = 1.0;
 
     getToken(token);
     assert (!strcmp(token, "{"));
@@ -267,7 +268,7 @@ Material *SceneParser::parseMaterial() {
                 refl = REFR;
             }
             else {
-                printf("Unknown token in parseMaterial: '%s'\n", token);
+                printf("Unknown token in parseMate: '%s'\n", token);
                 exit(0);
             }
         }
@@ -276,6 +277,10 @@ Material *SceneParser::parseMaterial() {
         }
         else if (strcmp(token, "shininess") == 0) {
             shininess = readFloat();
+        }
+        else if (strcmp(token, "refraction") == 0) {
+            // Optional: read in refraction index
+            refraction = readFloat();
         }
         else if (strcmp(token, "texture") == 0) {
             // Optional: read in texture and draw it.
@@ -286,7 +291,7 @@ Material *SceneParser::parseMaterial() {
             break;
         }
     }
-    auto *answer = new Material(diffuseColor, specularColor, shininess, refl, emission);
+    auto *answer = new Material(diffuseColor, refl, emission, refraction);
     return answer;
 }
 

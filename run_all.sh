@@ -13,5 +13,5 @@ build/PA1 testcases/scene01_basic.txt output/scene01.bmp
 # build/PA1 testcases/scene05_bunny_200.txt output/scene05.bmp
 # build/PA1 testcases/scene06_bunny_1k.txt output/scene06.bmp
 # build/PA1 testcases/scene07_shine.txt output/scene07.bmp
-build/PA1 testcases/scene11_box.txt output/scene11.bmp
+# build/PA1 testcases/scene11_box.txt output/scene11.bmp
 # build/PA1 testcases/scene12_bigball.txt output/scene12.bmp
