@@ -18,7 +18,7 @@
 #include <vector>
 
 
-# define samps 200
+// # define samps 1000
 # define M_PI 3.14159265358979323846
 # define epi 1e-7
 
@@ -169,12 +169,13 @@ int main(int argc, char *argv[]) {
         std::cout << "Argument " << argNum << " is: " << argv[argNum] << std::endl;
     }
 
-    if (argc != 3) {
+    if (argc != 4) {
         cout << "Usage: ./bin/PA1 <input scene file> <output bmp file>" << endl;
         return 1;
     }
     string inputFile = argv[1];
     string outputFile = argv[2];  // only bmp is allowed.
+    int samps = atoi(argv[3]);
 
     cout << "start reading" << endl;
     SceneParser sceneParser(inputFile.c_str());
