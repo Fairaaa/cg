@@ -12,7 +12,7 @@ mkdir -p output
 # build/PA1 testcases/scene04_axes.txt output/scene04.bmp
 # build/PA1 testcases/scene05_bunny_200.txt output/scene05.bmp
 # build/PA1 testcases/scene06_bunny_1k.txt output/scene06.bmp
-build/PA1 testcases/scene07_earth.txt output/scene07.bmp 200
+# build/PA1 testcases/scene07_earth.txt output/scene07.bmp 200
 # build/PA1 testcases/scene11_box.txt output/scene11.bmp 1000
 # build/PA1 testcases/scene12_bigball.txt output/scene12.bmp 50
 # build/PA1 testcases/scene13_bunnyinbox.txt output/scene13.bmp 50

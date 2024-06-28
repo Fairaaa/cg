@@ -6,6 +6,8 @@
 #include <cmath>
 
 // TODO: Implement functions and add more fields as necessary finish?
+#define EPSILON 1e-5
+
 
 class Sphere : public Object3D {
 public:
@@ -59,6 +61,8 @@ public:
         {
             t = t / ray_d;
         }
+        t -= EPSILON;
+
         if(t > tmin && t < h.getT())
         {
             Vector3f normal = (r.pointAtParameter(t) - center).normalized();
