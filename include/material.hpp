@@ -64,8 +64,8 @@ public:
     //         diffuseColor(d_color), specularColor(s_color), shininess(s) {
     // }
 
-    explicit Material(const Vector3f &d_color, Type r, const Vector3f &s = (0,0,0), float shininess = 0.0, const Vector3f &e = (0,0,0), float refraction = 1.0) :
-            diffuseColor(d_color), refl(r), specularColor(s), shininess(shininess), emission(e),refraction(refraction) {
+    explicit Material(const Vector3f &d_color, Type r, const Vector3f &e = (0,0,0), float refraction = 1.0) :
+            diffuseColor(d_color), refl(r),emission(e),refraction(refraction) {
         if(e.x() > 0.0 || e.y() > 0.0 || e.z() > 0.0) isLight = true;
     }
     explicit Material(string texture) : texture_file(texture)
@@ -112,42 +112,33 @@ public:
     virtual float getRefraction() const {
         return refraction;
     }
-    virtual float getShine() const {
-        return shininess;
-    }
-    virtual Vector3f getSpecular() const {
-        return specularColor;
-    }
 
 
-    Vector3f Shade(const Ray &ray, const Hit &hit,
-                   const Vector3f &dirToLight, const Vector3f &lightColor) {
-        Vector3f shaded = Vector3f::ZERO;
+    // Vector3f Shade(const Ray &ray, const Hit &hit,
+    //                const Vector3f &dirToLight, const Vector3f &lightColor) {
+    //     Vector3f shaded = Vector3f::ZERO;
 
-        // 相交处法向量
-        Vector3f N = hit.getNormal();
-        // 从相交处p指向光源的单位向量
-        Vector3f L = dirToLight.normalized();
-        // 
-        Vector3f V = - ray.getDirection();
-        // 反射光线方向
-        Vector3f R = 2 * Vector3f::dot(N, L) * N - L;
+    //     // 相交处法向量
+    //     Vector3f N = hit.getNormal();
+    //     // 从相交处p指向光源的单位向量
+    //     Vector3f L = dirToLight.normalized();
+    //     // 
+    //     Vector3f V = - ray.getDirection();
+    //     // 反射光线方向
+    //     Vector3f R = 2 * Vector3f::dot(N, L) * N - L;
 
-        // phong模型：漫反射+镜面反射
-        shaded = lightColor * diffuseColor * std::max(0.0f, Vector3f::dot(N, L)) + lightColor * specularColor * std::pow(std::max(0.0f, Vector3f::dot(R, V)), shininess);
+    //     // phong模型：漫反射+镜面反射
+    //     shaded = lightColor * diffuseColor * std::max(0.0f, Vector3f::dot(N, L)) + lightColor * specularColor * std::pow(std::max(0.0f, Vector3f::dot(R, V)), shininess);
 
-        return shaded;
-    }
+    //     return shaded;
+    // }
 
 
 protected:
     Vector3f diffuseColor;
     Type refl = DIFF;
-    Vector3f specularColor = Vector3f::ZERO;
-    float shininess = 0.0f;
     Vector3f emission = Vector3f::ZERO;
-
-    float refraction = 1.0f; // 折射率
+    float refraction = 0.0f; // 折射率
 };
 
 

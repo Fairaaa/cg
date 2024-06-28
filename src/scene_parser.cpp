@@ -257,8 +257,7 @@ Material *SceneParser::parseMaterial() {
 
 
     Type refl = DIFF;
-    Vector3f diffuseColor(1, 1, 1), specularColor(1, 1, 1), emission(0, 0, 0);
-    float shininess = 1000.0;
+    Vector3f diffuseColor(1, 1, 1), emission(0, 0, 0);
     float refraction = 1.0;
 
     getToken(token);
@@ -292,17 +291,6 @@ Material *SceneParser::parseMaterial() {
             // 完全镜面反射
             else if (strcmp(token, "SPEC") == 0) {
                 refl = SPEC;
-                getToken(token); if(!strcmp(token, "}")) break;
-                if(!strcmp(token, "specularColor")) {
-                    specularColor = readVector3f();
-                    getToken(token);
-                    if(!strcmp(token, "}")) break;
-                }
-                if(!strcmp(token, "shininess")) {
-                    shininess = readFloat();
-                    getToken(token);
-                    if(!strcmp(token, "}")) break;
-                }
             }
             else if (strcmp(token, "REFR") == 0) {
                 refl = REFR;
@@ -320,7 +308,7 @@ Material *SceneParser::parseMaterial() {
             break;
         }
     }
-    auto *answer = new Material(diffuseColor, refl, specularColor, shininess, emission, refraction);
+    auto *answer = new Material(diffuseColor, refl, emission, refraction);
     return answer;
 }
 
@@ -380,9 +368,6 @@ Group *SceneParser::parseGroup() {
             int index = readInt();
             assert (index >= 0 && index <= getNumMaterials());
             current_material = getMaterial(index);
-            if(current_material->isLight){
-                answer->hasLight = true; std::cout << "light" << std::endl;
-            }
         } else {
             Object3D *object = parseObject(token);
             assert (object != nullptr);

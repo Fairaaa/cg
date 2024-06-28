@@ -6,9 +6,9 @@ cmake --build build
 # Run all testcases. 
 # You can comment some lines to disable the run of specific examples.
 mkdir -p output
-# build/PA1 testcases/scene01_basic.txt output/scene01.bmp 90
+# build/PA1 testcases/scene01_basic.txt output/scene010.bmp 50
 # build/PA1 testcases/scene02_cube.txt output/scene02.bmp
-build/PA1 testcases/scene03_sphere.txt output/scene03_20.bmp 20
+build/PA1 testcases/scene03_sphere.txt output/scene030.bmp 20
 # build/PA1 testcases/scene04_mirr_noli.txt output/scene040_noli.bmp 100
 # build/PA1 testcases/scene04_mirr_pli.txt output/scene04_pli.bmp 100
 # build/PA1 testcases/scene04_mirr_dli.txt output/scene04_dli.bmp 100
