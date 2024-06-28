@@ -57,6 +57,7 @@ public:
     bool isTexture = false;
     string texture_file;
     Texture *texture = nullptr;
+    bool isLight = false;
     
 
     // explicit Material(const Vector3f &d_color, const Vector3f &s_color = Vector3f::ZERO, float s = 0) :
@@ -65,6 +66,7 @@ public:
 
     explicit Material(const Vector3f &d_color, Type r, const Vector3f &s = (0,0,0), float shininess = 0.0, const Vector3f &e = (0,0,0), float refraction = 1.0) :
             diffuseColor(d_color), refl(r), specularColor(s), shininess(shininess), emission(e),refraction(refraction) {
+        if(e.x() > 0.0 || e.y() > 0.0 || e.z() > 0.0) isLight = true;
     }
     explicit Material(string texture) : texture_file(texture)
     {

@@ -1,23 +1,21 @@
-
 PerspectiveCamera {
     center 0 0 10
     direction 0 0 -1
     up 0 1 0
     angle 30
-    width 500
-    height 500
+    width 300
+    height 300
 }
-
 Lights {
-    numLights 0
-}
-
-Background {
-    color 0 0 0
+    numLights 1
+    DirectionalLight {
+        direction -0.5 -0.5 -1
+        color 0.5 0.5 0.5 
+    }
 }
 
 Materials {
-    numMaterials 7
+    numMaterials 8
     PhongMaterial {
         color 0.75 0.75 0.75
         type DIFF
@@ -40,52 +38,27 @@ Materials {
         type DIFF
     }
     PhongMaterial {
-        color 0.999 0.999 0.999
+        color 0.4 0.4 0.4
         type SPEC
+        specularColor 0.7 0.7 0.7
+        shininess 20
     }
     PhongMaterial {
-        color 0.999 0.999 0.999
-        type REFR
-        refraction 1.5
+        color 0.4 0.4 0.4
+        type SPEC
+        specularColor 0.7 0.7 0.7
+        shininess 8
+    }
+    PhongMaterial {
+        color 0.1 0.42 0.75
+        type SPEC
+        specularColor 0.4 0.4 0.4
+        shininess 20
     }
 }
 
 Group {
-    numObjects 9
-    MaterialIndex 0
-    Plane {
-        normal 0 0 1
-        offset -3
-    }
-    Plane {
-	normal 0 1 0
-        offset -2
-    }
-    Plane {
-        normal 0 -1 0
-        offset -2
-    }
-    MaterialIndex 1
-    Plane {
-        normal 1 0 0
-        offset -2
-    }
-    MaterialIndex 2
-    Plane {
-        normal -1 0 0
-        offset -2
-    }
     MaterialIndex 3
-    Sphere {
-	center 0 5 0
-        radius 3.25
-    }
-    MaterialIndex 4
-    Plane {
-        normal 0 0 -1
-        offset -10
-    }
-    MaterialIndex 5
     Sphere {
         center -1 -1 0.5
         radius 0.75
@@ -95,5 +68,11 @@ Group {
         center 1 -1 2
         radius 1
     }
+    MaterialIndex 7
+    Sphere {
+        center -1 1 -1
+        radius 1
+    }
 }
+
 

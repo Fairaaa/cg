@@ -380,6 +380,9 @@ Group *SceneParser::parseGroup() {
             int index = readInt();
             assert (index >= 0 && index <= getNumMaterials());
             current_material = getMaterial(index);
+            if(current_material->isLight){
+                answer->hasLight = true; std::cout << "light" << std::endl;
+            }
         } else {
             Object3D *object = parseObject(token);
             assert (object != nullptr);

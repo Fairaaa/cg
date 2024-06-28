@@ -6,6 +6,7 @@
 #include <cmath>
 
 // TODO: Implement functions and add more fields as necessary finish?
+#define EPSILON 1e-4
 
 class Sphere : public Object3D {
 public:
@@ -59,6 +60,10 @@ public:
         {
             t = t / ray_d;
         }
+
+        // 找到交点后稍微向外移动
+        t = t - EPSILON;
+        // 判断是否在范围内
         if(t > tmin && t < h.getT())
         {
             Vector3f normal = (r.pointAtParameter(t) - center).normalized();
