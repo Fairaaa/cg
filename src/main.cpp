@@ -86,7 +86,52 @@ Vector3f radiance(SceneParser* sceneParser, const Ray &camRay, int depth, bool i
     if(hit.getMaterial()->getRefl() == DIFF)
     {
         Vector3f indirectcolor = Vector3f::ZERO;
+        Vector3f directcolor = Vector3f::ZERO;
 
+
+        // 漫反射材质且不是光源
+        if(ifNee && Emission(point).getMax() < epi && depth > 1)
+        {
+            // Vector3f current_point = camDRay.pointAtParameter(hitpoint.getT())
+            int samps_light_cnt = 0;
+            // 光源为(0,2,0)为圆心，0.5为半径的圆盘 从光源上随机取样
+
+            double r1 = 2 * M_PI * get_random();
+            double r2 = get_random();
+            double r2s = sqrt(r2);
+            // 采样光源点
+            Vector3f lightpoint = Vector3f(0, 2, 0) + Vector3f(0.5 * cos(r1) * r2s, 0, 0.5 * sin(r1) * r2s);
+            // 判断光线是否被遮挡
+            assert(lightpoint.y() == 2 && lightpoint.x() * lightpoint.x() + lightpoint.z() * lightpoint.z() < 0.25);
+            Vector3f shadowdir = (lightpoint - point).normalized();
+            Ray shadowRay = Ray(point, shadowdir);
+
+            Hit shadowhit;
+            assert(sceneParser.getGroup()->intersect(shadowRay, shadowhit, epi) == true);
+
+            Vector3f shadowHitPoint = shadowRay.pointAtParameter(shadowhit.getT());
+
+            // 从相交点向光源发射光线 如果最近交点来自天花板则排除
+            bool isShadow = shadowHitPoint.y() < 2.0 - epi;
+            // 未被遮挡
+            if(!isShadow)
+            {
+                // 交点到光源的距离
+                float distance = (shadowHitPoint - point).length();
+                samps_light_cnt++;
+                // 进行了NEE采样
+                ifNee = true;
+                // 光线和法向量的夹角
+                double cos_theta = Vector3f::dot(normal, shadowdir);
+                // 光源直接照射
+                if(cos_theta > 0)
+                {      
+                    // 光源对该点正对面积占总半球面积的比值
+                    float pdf = 0.25 * Vector3f::dot(shadowdir, normal) /  ( 2 * distance * distance);
+                    directcolor += hit.getMaterial()->getDiffuseColor() * cos_theta * pdf ;
+                }
+            }
+        }
         // 随机采样
         double r1 = 2 * M_PI * get_random();
         double r2 = get_random();
@@ -96,20 +141,22 @@ Vector3f radiance(SceneParser* sceneParser, const Ray &camRay, int depth, bool i
         Vector3f u = Vector3f::cross(( fabs_w_x > 0.1 ? Vector3f(0, 0, 1) : Vector3f(1, 0, 0)), w).normalized();
         Vector3f v = Vector3f::cross(w, u);
         Vector3f d = (u * cos(r1) * r2s + v * sin(r1) * r2s + w * sqrt(1 - r2)).normalized();
-
-
-        // 考虑NEE且当前交点为光源
-        if(depth == 2 && ifNee && Emission(point).getMax() > epi)
+        
+        bool ifHitLight = false;
+        if (ifNee && (point.y() - 2) * d.y() < 0)
         {
-            unsamps_cnt++;
-            return Vector3f::ZERO;
+            Vector3f lighthit = point + d * (2-point.y())/d.y();
+            if (lighthit.x() * lighthit.x() + lighthit.z() * lighthit.z() < 0.25 && depth > 1)
+            {
+                unsamps_cnt++;
+                ifHitLight = true;
+            }
         }
-        else
-        {   
-            indirectcolor += radiance(sceneParser, Ray(point, d), depth);
+        if(!ifHitLight)
+        {
+            indirectcolor = radiance(sceneParser, Ray(point, d), depth);
         }
-        // 间接光照
-        return Emission(point) + color * indirectcolor;
+        return Emission(point) + color * (indirectcolor + directcolor);
     }
 
     // 镜面反射
@@ -167,7 +214,7 @@ Vector3f radiance(SceneParser* sceneParser, const Ray &camRay, int depth, bool i
 
 int main(int argc, char *argv[]) {
     // 是否使用NEE采样
-    bool ifUseNee = false;
+    bool ifUseNee = true;
 
     for (int argNum = 1; argNum < argc; ++argNum) {
         std::cout << "Argument " << argNum << " is: " << argv[argNum] << std::endl;
@@ -197,73 +244,13 @@ int main(int argc, char *argv[]) {
             // unsigned short Xi[3] = {0, 0, static_cast<unsigned short>(y * y * y)};
 
             Vector3f color = Vector3f::ZERO;
-            Vector3f directcolor = Vector3f::ZERO;
-            Vector3f indirectcolor = Vector3f::ZERO;
-
-            // 是否进行了NEE采样
-            bool ifNee = false;
-
-            // 对光源直接采样
-            // 采样条件：漫反射材质且接受到光源直接照射
-            Hit hitpoint; // 相机视线和物体交点
-            Ray camDRay = camera -> generateRay(Vector2f(x, y));
-            bool intersect = sceneParser.getGroup()->intersect(camDRay, hitpoint, epi);
-            bool flag = intersect ? (hitpoint.getMaterial()->getRefl() == DIFF) : false;
-            // 采样点为漫反射材质
-            if(ifUseNee && flag)
-            {
-                Vector3f current_point = camDRay.pointAtParameter(hitpoint.getT());
-                int samps_light_cnt = 0;
-                // 光源为(0,2,0)为圆心，0.5为半径的圆盘 从光源上随机取样
-                for(int i = 0; i < samps_light; i++)
-                {
-                    double r1 = 2 * M_PI * get_random();
-                    double r2 = get_random();
-                    double r2s = sqrt(r2);
-                    // 采样光源点
-                    Vector3f lightpoint = Vector3f(0, 2, 0) + Vector3f(0.5 * cos(r1) * r2s, 0, 0.5 * sin(r1) * r2s);
-                    // 判断光线是否被遮挡
-                    assert(lightpoint.y() == 2 && lightpoint.x() * lightpoint.x() + lightpoint.z() * lightpoint.z() < 0.25);
-                    Vector3f shadowdir = (lightpoint - current_point).normalized();
-                    Ray shadowRay = Ray(current_point, shadowdir);
-
-                    Hit shadowhit;
-                    assert(sceneParser.getGroup()->intersect(shadowRay, shadowhit, epi) == true);
-
-                   Vector3f shadowHitPoint = shadowRay.pointAtParameter(shadowhit.getT());
-
-                    // 从相交点向光源发射光线 如果最近交点来自天花板则排除
-                    bool isShadow = shadowHitPoint.y() < 2.0 - epi;
-                    // 未被遮挡
-                
-                    if(!isShadow)
-                    {
-                        // 交点到光源的距离
-                        float distance = (shadowHitPoint - current_point).length();
-                        samps_light_cnt++;
-                        // 进行了NEE采样
-                        ifNee = true;
-                        double cos_theta = Vector3f::dot(hitpoint.getNormal(), shadowdir);
-                        // 光源直接照射
-                        float pdf = 1.0 / (M_PI * 0.25 * distance * distance);
-                        if(cos_theta > 0)
-                        {
-                            directcolor += hitpoint.getMaterial()->getDiffuseColor() * cos_theta * pdf ;
-                        }
-                    }
-                }
-                if(samps_light_cnt > 0){
-                    directcolor = directcolor / samps_light_cnt;
-                }
-            }
-
             vector<pair<double, double>> dots; // 采样点
             dots.push_back(pair<double, double>((x + 0.25) / camera -> getWidth() - 0.5, (y + 0.25) / camera -> getHeight() - 0.5));
             dots.push_back(pair<double, double>((x + 0.75) / camera -> getWidth() - 0.5, (y + 0.25) / camera -> getHeight() - 0.5));
             dots.push_back(pair<double, double>((x + 0.25) / camera -> getWidth() - 0.5, (y + 0.75) / camera -> getHeight() - 0.5));
             dots.push_back(pair<double, double>((x + 0.75) / camera -> getWidth() - 0.5, (y + 0.75) / camera -> getHeight() - 0.5));
 
-            // 间接光照采样
+            // 采样
             for(pair<double, double> item : dots)
             {
                 // 采样
@@ -278,13 +265,11 @@ int main(int argc, char *argv[]) {
 
                     Ray camRay = camera -> generateRay(Vector2f((x + dx), (y + dy)));
                     
-                    Vector3f r = radiance(&sceneParser, camRay, 0,ifNee) * (1.0 / (samps - unsamps_cnt));
-                    indirectcolor += r.clamp();
+                    Vector3f r = radiance(&sceneParser, camRay, 0, ifUseNee) * (1.0 / (samps - unsamps_cnt));
+                    color += r.clamp();
                 }
             }
-            indirectcolor = indirectcolor / 4.0;
-
-            color = directcolor + indirectcolor;
+            color = color / 4.0;
             image->SetPixel(x, y, color);
         }
     }
