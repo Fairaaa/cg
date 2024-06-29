@@ -4,8 +4,8 @@ PerspectiveCamera {
     direction 0 0 -1
     up 0 1 0
     angle 30
-    width 500
-    height 500
+    width 200
+    height 200
 }
 
 Lights {
@@ -51,7 +51,7 @@ Materials {
 }
 
 Group {
-    numObjects 8
+    numObjects 6
     MaterialIndex 0
     Plane {
         normal 0 0 1
@@ -79,16 +79,6 @@ Group {
     Plane {
         normal 0 0 -1
         offset -10
-    }
-    MaterialIndex 5
-    Sphere {
-        center -1 -1 0.5
-        radius 1
-    }
-    MaterialIndex 6
-    Sphere {
-        center 1 -1 2
-        radius 0.75
     }
 }
 
