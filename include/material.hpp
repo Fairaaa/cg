@@ -14,7 +14,7 @@
 using namespace std;
 
 
-enum Type{DIFF, SPEC, REFR};
+enum Type{DIFF, SPEC, REFR, GLOS};
 
 
 class Texture
@@ -64,8 +64,8 @@ public:
     //         diffuseColor(d_color), specularColor(s_color), shininess(s) {
     // }
 
-    explicit Material(const Vector3f &d_color, Type r, const Vector3f &e = (0,0,0), float refraction = 1.0) :
-            diffuseColor(d_color), refl(r),emission(e),refraction(refraction) {
+    explicit Material(const Vector3f &d_color, Type r, const Vector3f &e = (0,0,0), float roughness = 1.0, float refraction = 1.0) :
+            diffuseColor(d_color), refl(r),emission(e),roughness(roughness), refraction(refraction) {
         if(e.x() > 0.0 || e.y() > 0.0 || e.z() > 0.0) isLight = true;
     }
     explicit Material(string texture) : texture_file(texture)
@@ -109,6 +109,9 @@ public:
     virtual Vector3f getEmission() const {
         return emission;
     }
+    virtual float getRoughness() const {
+        return roughness;
+    }
     virtual float getRefraction() const {
         return refraction;
     }
@@ -138,6 +141,7 @@ protected:
     Vector3f diffuseColor;
     Type refl = DIFF;
     Vector3f emission = Vector3f::ZERO;
+    float roughness = 0.0f; // 粗糙度
     float refraction = 0.0f; // 折射率
 };
 

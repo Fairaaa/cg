@@ -13,7 +13,7 @@
 #include "light.hpp"
 #include "material.hpp"
 #include "ray.hpp"
-
+#include <assert.h>
 #include <string>
 #include <vector>
 
@@ -39,14 +39,21 @@ double get_random()
 }
 bool RR(double p){ return get_random() < p; }
 
-Vector3f Emission(Vector3f point)
+Vector3f Emission(const Hit &hit, Vector3f point, bool ifNee = false)
 {
-    if(point.y() > 2 - epi && point.y() < 2 + epi && point.x() * point.x() + point.z() * point.z() < 0.25 + epi)
+    if(ifNee)
     {
-        return Vector3f(12, 12, 12);
+        if(point.y() > 2 - epi && point.y() < 2 + epi && point.x() * point.x() + point.z() * point.z() < 0.25 + epi)
+        {
+            return Vector3f(20, 20, 20);
+        }
     }
-    return Vector3f::ZERO;
+    else
+    {
+        return hit.getMaterial()->getEmission();
+    }
 }
+
 
 
 Vector3f radiance(SceneParser* sceneParser, const Ray &camRay, int depth, bool ifNee = false) {
@@ -75,11 +82,11 @@ Vector3f radiance(SceneParser* sceneParser, const Ray &camRay, int depth, bool i
             color = color * (1.0/p);
             if(color.getMax() < epi || depth > 200)
             {
-                return Emission(point);
+                return Emission(hit, point, ifNee);
             }
         }
         // 是光源则返回光源颜色 否则返回黑色
-        else return Emission(point);
+        else return Emission(hit, point, ifNee);
     }
 
     // 漫反射
@@ -90,7 +97,7 @@ Vector3f radiance(SceneParser* sceneParser, const Ray &camRay, int depth, bool i
 
 
         // 漫反射材质且不是光源
-        if(ifNee && Emission(point).getMax() < epi && depth > 1)
+        if(ifNee && Emission(hit, point, ifNee).getMax() < epi && depth > 1)
         {
             // Vector3f current_point = camDRay.pointAtParameter(hitpoint.getT())
             int samps_light_cnt = 0;
@@ -156,7 +163,7 @@ Vector3f radiance(SceneParser* sceneParser, const Ray &camRay, int depth, bool i
         {
             indirectcolor = radiance(sceneParser, Ray(point, d), depth);
         }
-        return Emission(point) + color * (indirectcolor + directcolor);
+        return Emission(hit, point, ifNee) + color * (indirectcolor + directcolor);
     }
 
     // 镜面反射
@@ -164,7 +171,57 @@ Vector3f radiance(SceneParser* sceneParser, const Ray &camRay, int depth, bool i
     {
         // 镜面反射方向
         Vector3f spec_d = camRay.getDirection() - normal * 2 * Vector3f::dot(normal, camRay.getDirection());
-        return Emission(point) + color * radiance(sceneParser, Ray(point, spec_d), depth);
+        return Emission(hit, point, ifNee) + color * radiance(sceneParser, Ray(point, spec_d), depth);
+    }
+
+    // 光滑面
+    else if(hit.getMaterial()->getRefl() == GLOS)
+    {
+        // 先随机一个出射方向
+        double r1 = 2 * M_PI * get_random();
+        double r2 = get_random();
+        double r2s = sqrt(r2);
+        Vector3f w = normal;
+        double fabs_w_x = (double)w.x() > 0.0 ? w.x() : -w.x();
+        Vector3f u = Vector3f::cross(( fabs_w_x > 0.1 ? Vector3f(0, 0, 1) : Vector3f(1, 0, 0)), w).normalized();
+        Vector3f v = Vector3f::cross(w, u);
+        Vector3f w_o = (u * cos(r1) * r2s + v * sin(r1) * r2s + w * sqrt(1 - r2)).normalized(); // 出射光线方向
+    
+        // std::cout << Vector3f::dot(w_o, normal) << std::endl;
+
+        Vector3f w_i = -camRay.getDirection(); // 入射光线方向
+
+        // 菲涅尔反射系数
+        double F0 = 0.9;
+        double F = F0 + (1 - F0) * pow(1 - Vector3f::dot(w_i, normal), 5);
+        assert(F > 0.0);
+
+        // 几何遮蔽项
+        double roughness = hit.getMaterial()->getRoughness();
+        double roughness2 = roughness * roughness;
+
+        double k = (roughness + 1) * (roughness + 1) / 8;
+        Vector3f v1 = -w_o; // 假设w_o是观察方向
+        Vector3f l1 = w_i; // 入射光方向
+        double G1v = Vector3f::dot(normal, v1) / (Vector3f::dot(normal, v1) * (1 - k) + k);
+        double G1l = Vector3f::dot(normal, l1) / (Vector3f::dot(normal, l1) * (1 - k) + k);
+        double G = G1v * G1l;
+        G = -G;
+
+
+        assert (G > 0.0);
+
+        // 法线分布函数
+        Vector3f h = (w_i + w_o).normalized();
+        float d = (roughness2 - 1.0) * Vector3f::dot(normal, h) * Vector3f::dot(normal,h) + 1.0;
+        double D = (roughness2) / (M_PI * d * d);
+
+        // BRDF
+        double BRDF = F * D / (4 * Vector3f::dot(normal, w_i) * Vector3f::dot(normal, w_o));
+
+        // // 递归
+        // assert(BRDF >= 0.0 && BRDF <= 1.0);
+        return color * radiance(sceneParser, Ray(point, w_o), depth) * BRDF;
     }
 
     // 折射
@@ -179,7 +236,7 @@ Vector3f radiance(SceneParser* sceneParser, const Ray &camRay, int depth, bool i
         float cos2t = 1 - nnt * nnt * (1 - ddn * ddn);
         if(cos2t < 0)
         {
-            return Emission(point) + color * radiance(sceneParser, reflRay, depth);
+            return Emission(hit, point, ifNee) + color * radiance(sceneParser, reflRay, depth);
         }
 
         Vector3f tdir = (camRay.getDirection() * nnt - normal * ((into ? 1 : -1) * (ddn * nnt + sqrt(cos2t)))).normalized();
@@ -196,15 +253,15 @@ Vector3f radiance(SceneParser* sceneParser, const Ray &camRay, int depth, bool i
         if(depth > 2)
         {
             if(get_random() < P){
-                return Emission(point) + color * radiance(sceneParser, reflRay, depth) * RP;
+                return Emission(hit, point, ifNee) + color * radiance(sceneParser, reflRay, depth) * RP;
             }
             else{
-                return Emission(point) + color * radiance(sceneParser, Ray(point, tdir), depth) * TP;
+                return Emission(hit, point, ifNee) + color * radiance(sceneParser, Ray(point, tdir), depth) * TP;
             }
         }
         else
         {
-            return Emission(point) + color * (radiance(sceneParser, reflRay, depth) * Re + radiance(sceneParser, Ray(point, tdir), depth) * Tr);
+            return Emission(hit, point, ifNee) + color * (radiance(sceneParser, reflRay, depth) * Re + radiance(sceneParser, Ray(point, tdir), depth) * Tr);
         }
     }
     return Vector3f::ZERO;
@@ -213,8 +270,6 @@ Vector3f radiance(SceneParser* sceneParser, const Ray &camRay, int depth, bool i
 
 
 int main(int argc, char *argv[]) {
-    // 是否使用NEE采样
-    bool ifUseNee = true;
 
     for (int argNum = 1; argNum < argc; ++argNum) {
         std::cout << "Argument " << argNum << " is: " << argv[argNum] << std::endl;
@@ -235,6 +290,14 @@ int main(int argc, char *argv[]) {
 
     cout << "start drawing" << endl;
     float startT = clock();
+
+
+
+    // 如果场景无发光物体 则使用NEE
+    bool ifUseNee = false;
+    if(!sceneParser.getGroup()->hasLight) ifUseNee = true;
+    std::cout << "ifUseNee: " << ifUseNee << std::endl;
+
     for(int x = 0; x < camera->getWidth(); ++x)
     {   
         #pragma omp parallel for schedule(dynamic) 

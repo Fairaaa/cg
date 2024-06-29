@@ -40,8 +40,9 @@ Materials {
         type DIFF
     }
     PhongMaterial {
-        color 0.999 0.999 0.999
-        type SPEC
+        color 0.690196 0.34902 0.137255
+        type GLOS
+        roughness 0.8
     }
     PhongMaterial {
         color 0.999 0.999 0.999
@@ -51,12 +52,12 @@ Materials {
     PhongMaterial {
         color 0.4 0.6 0.87
         type GLOS
-        roughness 0.8
+        roughness 0.3
     }
 }
 
 Group {
-    numObjects 8
+    numObjects 9
     MaterialIndex 0
     Plane {
         normal 0 0 1
@@ -80,6 +81,11 @@ Group {
         normal -1 0 0
         offset -2
     }
+    MaterialIndex 3
+    Sphere {
+	center 0 5 0
+        radius 3.25
+    }
     MaterialIndex 4
     Plane {
         normal 0 0 -1
@@ -90,10 +96,9 @@ Group {
         center -1 -1 0.5
         radius 1
     }
-    MaterialIndex 6
+    MaterialIndex 7
     Sphere {
         center 1 -1 2
         radius 0.75
     }
 }
-

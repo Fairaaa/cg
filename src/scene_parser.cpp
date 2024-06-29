@@ -258,6 +258,7 @@ Material *SceneParser::parseMaterial() {
 
     Type refl = DIFF;
     Vector3f diffuseColor(1, 1, 1), emission(0, 0, 0);
+    float roughness = 0.0;
     float refraction = 1.0;
 
     getToken(token);
@@ -292,6 +293,12 @@ Material *SceneParser::parseMaterial() {
             else if (strcmp(token, "SPEC") == 0) {
                 refl = SPEC;
             }
+            else if (strcmp(token, "GLOS") == 0) {
+                refl = GLOS;
+                getToken(token);
+                assert(!strcmp(token,"roughness"));
+                roughness = readFloat();
+            }
             else if (strcmp(token, "REFR") == 0) {
                 refl = REFR;
                 getToken(token);
@@ -308,7 +315,7 @@ Material *SceneParser::parseMaterial() {
             break;
         }
     }
-    auto *answer = new Material(diffuseColor, refl, emission, refraction);
+    auto *answer = new Material(diffuseColor, refl, emission, roughness, refraction);
     return answer;
 }
 
@@ -368,6 +375,7 @@ Group *SceneParser::parseGroup() {
             int index = readInt();
             assert (index >= 0 && index <= getNumMaterials());
             current_material = getMaterial(index);
+            if(current_material->isLight) answer->hasLight = true;
         } else {
             Object3D *object = parseObject(token);
             assert (object != nullptr);
