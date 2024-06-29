@@ -21,7 +21,7 @@
 // # define samps 1000
 # define M_PI 3.14159265358979323846
 # define epi 1e-5
-# define samps_light 10
+# define samps_light 100
 
 using namespace std;
 
@@ -37,6 +37,18 @@ double get_random()
 }
 bool RR(double p){ return get_random() < p; }
 
+Vector3f Emission(Vector3f point){
+    if(point.y() < (2.0 + epi) && point.y() > (2.0 - epi) && point.x() * point.x() + point.z() * point.z() < 0.25)
+    {
+        return Vector3f(12, 12, 12);
+    }
+    else
+    {
+        return Vector3f::ZERO;
+    }
+}
+
+
 Vector3f radiance(SceneParser* sceneParser, const Ray &camRay, int depth, unsigned short *Xi) {
     depth++;
     double t;
@@ -44,10 +56,7 @@ Vector3f radiance(SceneParser* sceneParser, const Ray &camRay, int depth, unsign
     Hit hit;
 
     bool isIntersect = group->intersect(camRay, hit, epi);
-    if(!isIntersect)
-    {
-        return sceneParser -> getBackgroundColor();
-    }
+    if(!isIntersect) return sceneParser -> getBackgroundColor();
 
     t = hit.getT();
     Vector3f point = camRay.pointAtParameter(t);
@@ -64,10 +73,13 @@ Vector3f radiance(SceneParser* sceneParser, const Ray &camRay, int depth, unsign
         if(RR(p))
         {
             color = color * (1.0/p);
-            if(color.getMax() < epi || depth > 200) return hit.getMaterial()->getEmission();
+            if(color.getMax() < epi || depth > 200)
+            {
+                return Emission(point);
+            }
         }
         // 是光源则返回光源颜色 否则返回黑色
-        else return hit.getMaterial()->getEmission();
+        else return Emission(point);
     }
 
     // 漫反射
@@ -81,7 +93,7 @@ Vector3f radiance(SceneParser* sceneParser, const Ray &camRay, int depth, unsign
         // 面光源为y = 2 面上以 （0,2,0） 上点为中心 半径为0.5 的圆盘 emission = 12,12,12
         // pdf:光源面积分之一
         // 光源部分占非光源部分的比值
-        float pdf = 1.0 / (2 * M_PI * 0.5 * 0.5) * Vector3f::dot(normal, Vector3f(0, 1, 0));
+        float pdf = 1.0 / (2 * M_PI) * Vector3f::dot(normal, Vector3f(0, 1, 0));
         // 随机在光源上选取samps个采样点
         for(int i = 0; i < samps_light; i++){
             double r1 = 2 * M_PI * get_random();
@@ -99,7 +111,7 @@ Vector3f radiance(SceneParser* sceneParser, const Ray &camRay, int depth, unsign
             {
                 double cos_theta = Vector3f::dot(lightDir, normal);
                 assert(pdf > 0 && cos_theta > 0);
-                directcolor += color * Vector3f::dot(lightDir, normal) * Vector3f(12,12,12) / M_PI / pdf / samps_light;
+                directcolor += Vector3f::dot(lightDir, normal) * Vector3f(12,12,12) / pdf;
             }
         }
 
@@ -120,8 +132,7 @@ Vector3f radiance(SceneParser* sceneParser, const Ray &camRay, int depth, unsign
         }
 
         // 间接光照
-        indirectcolor += radiance(sceneParser, Ray(point, d), depth, Xi);
-        return hit.getMaterial()->getEmission() + color * (directcolor + indirectcolor);
+        return Emission(point) + color * (directcolor + indirectcolor);
     }
 
     // 镜面反射
@@ -129,7 +140,7 @@ Vector3f radiance(SceneParser* sceneParser, const Ray &camRay, int depth, unsign
     {
         // 镜面反射方向
         Vector3f spec_d = camRay.getDirection() - normal * 2 * Vector3f::dot(normal, camRay.getDirection());
-        return hit.getMaterial()->getEmission() + color * radiance(sceneParser, Ray(point, spec_d), depth, Xi);
+        return Emission(point) + color * radiance(sceneParser, Ray(point, spec_d), depth, Xi);
     }
 
     // 折射
@@ -144,7 +155,7 @@ Vector3f radiance(SceneParser* sceneParser, const Ray &camRay, int depth, unsign
         float cos2t = 1 - nnt * nnt * (1 - ddn * ddn);
         if(cos2t < 0)
         {
-            return hit.getMaterial()->getEmission() + color * radiance(sceneParser, reflRay, depth, Xi);
+            return Emission(point) + color * radiance(sceneParser, reflRay, depth, Xi);
         }
 
         Vector3f tdir = (camRay.getDirection() * nnt - normal * ((into ? 1 : -1) * (ddn * nnt + sqrt(cos2t)))).normalized();
@@ -161,15 +172,15 @@ Vector3f radiance(SceneParser* sceneParser, const Ray &camRay, int depth, unsign
         if(depth > 2)
         {
             if(get_random() < P){
-                return hit.getMaterial()->getEmission() + color * radiance(sceneParser, reflRay, depth, Xi) * RP;
+                return Emission(point) + color * radiance(sceneParser, reflRay, depth, Xi) * RP;
             }
             else{
-                return hit.getMaterial()->getEmission() + color * radiance(sceneParser, Ray(point, tdir), depth, Xi) * TP;
+                return Emission(point) + color * radiance(sceneParser, Ray(point, tdir), depth, Xi) * TP;
             }
         }
         else
         {
-            return hit.getMaterial()->getEmission() + color * (radiance(sceneParser, reflRay, depth, Xi) * Re + radiance(sceneParser, Ray(point, tdir), depth, Xi) * Tr);
+            return Emission(point) + color * (radiance(sceneParser, reflRay, depth, Xi) * Re + radiance(sceneParser, Ray(point, tdir), depth, Xi) * Tr);
         }
     }
     return Vector3f::ZERO;
@@ -199,10 +210,12 @@ int main(int argc, char *argv[]) {
     float startT = clock();
     //  框架
     for(int x = 0; x < camera->getWidth(); ++x)
-    {
+    {   
+        // if(y == 0 && x%(camera->getWidth()/10)) cout << x / (camera->getWidth() / 10) << "0%" << endl;
         #pragma omp parallel for schedule(dynamic) 
         for(int y = 0; y < camera-> getHeight(); ++y)
         {
+            
             unsigned short Xi[3] = {0, 0, static_cast<unsigned short>(y * y * y)};
             Vector3f color = Vector3f::ZERO;
 
