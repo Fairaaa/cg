@@ -6,12 +6,8 @@
 #include <cmath>
 
 // TODO: Implement functions and add more fields as necessary finish?
-<<<<<<< HEAD
-#define EPSILON 1e-5
-
-=======
 #define EPSILON 1e-4
->>>>>>> fff
+
 
 class Sphere : public Object3D {
 public:
