@@ -167,7 +167,7 @@ Vector3f radiance(SceneParser* sceneParser, const Ray &camRay, int depth, bool i
 
 int main(int argc, char *argv[]) {
     // 是否使用NEE采样
-    bool ifUseNee = true;
+    bool ifUseNee = false;
 
     for (int argNum = 1; argNum < argc; ++argNum) {
         std::cout << "Argument " << argNum << " is: " << argv[argNum] << std::endl;
@@ -296,7 +296,6 @@ int main(int argc, char *argv[]) {
 
     cout << "Hello! Computer Graphics!" << endl;
     cout << "Time cost: " << (endT - startT) / CLOCKS_PER_SEC << "s" << endl;
-    // cout << "采样光源成功率" << samps_light_cnt / samps_light << endl;
-    // cout << "间接光照采样成功率" << (samps - unsamps_cnt) / samps << endl;
+    cout <<  (endT - startT) / CLOCKS_PER_SEC  / 60 << "min" << endl;
     return 0;
 }
