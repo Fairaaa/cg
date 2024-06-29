@@ -4,8 +4,8 @@ PerspectiveCamera {
     direction 0 0 -1
     up 0 1 0
     angle 30
-    width 400
-    height 400
+    width 300
+    height 300
 }
 
 Lights {
@@ -40,21 +40,27 @@ Materials {
         type DIFF
     }
     PhongMaterial {
-        color 0.999 0.999 0.999
+        color 0.4 0.4 0.4
         type SPEC
+        specularColor 0.7 0.7 0.7
+        shininess 20
     }
     PhongMaterial {
-        color 0.999 0.999 0.999
-        type REFR
-        refraction 1.5
+        color 0.4 0.4 0.4
+        type SPEC
+        specularColor 0.7 0.7 0.7
+        shininess 8
     }
     PhongMaterial {
-        texture texture/earth.png
+        color 0.1 0.42 0.75
+        type SPEC
+        specularColor 0.4 0.4 0.4
+        shininess 20
     }
 }
 
 Group {
-    numObjects 8
+    numObjects 10
     MaterialIndex 0
     Plane {
         normal 0 0 1
@@ -88,10 +94,20 @@ Group {
         normal 0 0 -1
         offset -10
     }
+    MaterialIndex 5
+    Sphere {
+        center -1 -1 0.5
+        radius 0.75
+    }
+    MaterialIndex 6
+    Sphere {
+        center 1 -1 2
+        radius 1
+    }
     MaterialIndex 7
     Sphere {
-        center 0 0 0
-        radius 1.2
+        center -1 1 -1
+        radius 1
     }
 }
 

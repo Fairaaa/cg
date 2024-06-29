@@ -57,6 +57,7 @@ public:
     bool isTexture = false;
     string texture_file;
     Texture *texture = nullptr;
+    bool isLight = false;
     
 
     // explicit Material(const Vector3f &d_color, const Vector3f &s_color = Vector3f::ZERO, float s = 0) :
@@ -65,6 +66,7 @@ public:
 
     explicit Material(const Vector3f &d_color, Type r, const Vector3f &s = (0,0,0), float shininess = 0.0, const Vector3f &e = (0,0,0), float refraction = 1.0) :
             diffuseColor(d_color), refl(r), specularColor(s), shininess(shininess), emission(e),refraction(refraction) {
+        if(e.x() > 0.0 || e.y() > 0.0 || e.z() > 0.0) isLight = true;
     }
     explicit Material(string texture) : texture_file(texture)
     {
@@ -84,14 +86,14 @@ public:
         // point转化为（-1，-1,1）下半径为0.75的球的坐标
         // U 坐标对应球体表面的水平位置
         // V 坐标对应球体表面的垂直位置
-        Vector3f center = Vector3f(-1, -1, 1);
-        float radius = 0.75;
+        Vector3f center = Vector3f(0, 0, 0);
+        float radius = 1.2;
 
         Vector3f p = point - center;
         float phi = atan2(p.z(), p.x());
         float theta = asin(p.y() / radius);
         float u = 1 - (phi + M_PI) / (2 * M_PI);
-        float v = (theta + M_PI / 2) / M_PI;
+        float v = 1 - (theta + M_PI / 2) / M_PI;
 
         assert(u >= 0 && u <= 1);
         assert(v >= 0 && v <= 1);

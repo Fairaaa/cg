@@ -43,10 +43,7 @@ Vector3f radiance(SceneParser* sceneParser, const Ray &camRay, int depth, unsign
     Hit hit;
 
     bool isIntersect = group->intersect(camRay, hit, epi);
-    if(!isIntersect)
-    {
-        return sceneParser -> getBackgroundColor();
-    }
+    if(!isIntersect) return sceneParser -> getBackgroundColor();
 
     t = hit.getT();
     Vector3f point = camRay.pointAtParameter(t);
@@ -59,7 +56,12 @@ Vector3f radiance(SceneParser* sceneParser, const Ray &camRay, int depth, unsign
     double p = color.getMax();
     assert(p > 0 && p <= 1.0);
 
+    // 该场景是否含有发光物体
+    
+    bool hasLight = group->hasLight;
+
     // 找到光源或者递归深度大于5且概率小于p
+
     if(depth > 5)
     {
         if(RR(p))
@@ -69,7 +71,8 @@ Vector3f radiance(SceneParser* sceneParser, const Ray &camRay, int depth, unsign
         }
         // 是光源则返回光源颜色 否则返回黑色
         else return hit.getMaterial()->getEmission();
-    }
+    }        
+    
 
     // 漫反射
     if(hit.getMaterial()->getRefl() == DIFF)
@@ -142,8 +145,15 @@ Vector3f radiance(SceneParser* sceneParser, const Ray &camRay, int depth, unsign
                 }
             }
         }
+        // 间接光照
+        float specPower = hit.getMaterial()->getShine();
+        Vector3f specColor = hit.getMaterial()->getSpecular();
+
+        // float specTerm = pow(std::max(0.0f, Vector3f::dot(spec_d, camRay.getDirection())), specPower);
         Vector3f indirectcolor = radiance(sceneParser, Ray(point, spec_d), depth, Xi);
+
         return hit.getMaterial()->getEmission() + color * (directcolor + indirectcolor);
+
     }
 
     // 折射
@@ -205,24 +215,16 @@ Vector3f radiance(SceneParser* sceneParser, const Ray &camRay, int depth, unsign
                 }
             }
         }
-
         // 根据俄罗斯轮盘赌确定是反射还是折射
         if(depth > 2)
         {
-            if(get_random() < P)
-            {
-                return hit.getMaterial()->getEmission() + color * (directColor + radiance(sceneParser, reflRay, depth, Xi) * RP);
-            }
-            else
-            {
-                return hit.getMaterial()->getEmission() + color * (directColor + radiance(sceneParser, Ray(point, tdir), depth, Xi) * TP);
-            }
+            if(get_random() < P) return hit.getMaterial()->getEmission() + color * (directColor + radiance(sceneParser, reflRay, depth, Xi) * RP);
+            else return hit.getMaterial()->getEmission() + color * (directColor + radiance(sceneParser, Ray(point, tdir), depth, Xi) * TP);
         }
-        else
-        {
-            return hit.getMaterial()->getEmission() + color * (directColor + (radiance(sceneParser, reflRay, depth, Xi) * Re + radiance(sceneParser, Ray(point, tdir), depth, Xi) * Tr));
-        }
+        else return hit.getMaterial()->getEmission() + color * (directColor + (radiance(sceneParser, reflRay, depth, Xi) * Re + radiance(sceneParser, Ray(point, tdir), depth, Xi) * Tr));
+    
     }
+
     return Vector3f::ZERO;
 }
 
@@ -279,9 +281,34 @@ int main(int argc, char *argv[]) {
                     dy = (item.second + 0.5 + dy) / 2.0;
 
                     Ray camRay = camera -> generateRay(Vector2f((x + dx), (y + dy)));
+                    // 产生光线
+                    // 景深效果
+                    if(camera->getFocal() > 0){
+                        // 计算光线到焦平面的交点p
+                        float tp = camera->getFocal() / Vector3f::dot(camRay.getDirection(), camera->getDirection());
+                        Vector3f p = camRay.pointAtParameter(tp);
 
-                    Vector3f r = radiance(&sceneParser, camRay, 0,Xi) * (1.0 / samps);
-                    color += r.clamp();
+                        // 根据光圈大小对相机视点随机偏移
+                        for(int i = 0; i < 10; i++)
+                        {
+                            // 随机方向
+                            float r1 = 2 * M_PI * get_random();
+                            // 随机距离
+                            float r2 = get_random();
+                            float dx = sqrt(r2) * camera->getAperture() * cos(r1);
+                            float dy = sqrt(r2) * camera->getAperture() * sin(r1);
+                            Vector3f newCenter = camera->getCenter() + camera->getHorizontal() * dx/2 + camera->getUp() * dy/2;
+                            Vector3f newDir = (p - newCenter).normalized();
+                            Ray newRay = Ray(newCenter, newDir);
+                            Vector3f r = radiance(&sceneParser, newRay, 0, Xi) * (1.0 / 10) * (1.0 / samps);
+                            color += r.clamp();
+                        }
+                    }
+                    else
+                    {
+                        Vector3f r = radiance(&sceneParser, camRay, 0,Xi) * (1.0 / samps);
+                        color += r.clamp();                        
+                    }
                 }
             }
             color = color / 4.0;

@@ -14,7 +14,7 @@
 class Group : public Object3D {
 
 public:
-
+    bool hasLight = false;
     Group() {
     }
 

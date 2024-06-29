@@ -124,8 +124,22 @@ void SceneParser::parsePerspectiveCamera() {
     assert (!strcmp(token, "height"));
     int height = readInt();
     getToken(token);
+
+    float focal = -1.0; // 默认为-1.0，表示没有focal
+    float aperture = 0.0;
+
+    // std::cout << token << std::endl;
+
+    if(!strcmp(token,"focal")){
+        focal = readFloat();
+        getToken(token);
+        assert (!strcmp(token, "aperture"));
+        aperture = readFloat();
+        getToken(token);
+    }
+
     assert (!strcmp(token, "}"));
-    camera = new PerspectiveCamera(center, direction, up, width, height, angle_radians);
+    camera = new PerspectiveCamera(center, direction, up, width, height, angle_radians, focal, aperture);
 }
 
 void SceneParser::parseBackground() {
@@ -366,6 +380,9 @@ Group *SceneParser::parseGroup() {
             int index = readInt();
             assert (index >= 0 && index <= getNumMaterials());
             current_material = getMaterial(index);
+            if(current_material->isLight){
+                answer->hasLight = true; std::cout << "light" << std::endl;
+            }
         } else {
             Object3D *object = parseObject(token);
             assert (object != nullptr);
