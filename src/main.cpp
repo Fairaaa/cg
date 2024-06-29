@@ -21,15 +21,12 @@
 // # define samps 1000
 # define M_PI 3.14159265358979323846
 # define epi 1e-5
-# define samps_light 20
 
 using namespace std;
 
 std::random_device rd;
 std::mt19937 gen(rd());
 std::uniform_real_distribution<double> distribution(0.0, 1.0);
-
-int unsamps_cnt = 0;
 
 double get_random()
 {
@@ -93,7 +90,6 @@ Vector3f radiance(SceneParser* sceneParser, const Ray &camRay, int depth, bool i
         if(ifNee && Emission(point).getMax() < epi && depth > 1)
         {
             // Vector3f current_point = camDRay.pointAtParameter(hitpoint.getT())
-            int samps_light_cnt = 0;
             // 光源为(0,2,0)为圆心，0.5为半径的圆盘 从光源上随机取样
 
             double r1 = 2 * M_PI * get_random();
@@ -118,7 +114,6 @@ Vector3f radiance(SceneParser* sceneParser, const Ray &camRay, int depth, bool i
             {
                 // 交点到光源的距离
                 float distance = (shadowHitPoint - point).length();
-                samps_light_cnt++;
                 // 进行了NEE采样
                 ifNee = true;
                 // 光线和法向量的夹角
@@ -148,7 +143,6 @@ Vector3f radiance(SceneParser* sceneParser, const Ray &camRay, int depth, bool i
             Vector3f lighthit = point + d * (2-point.y())/d.y();
             if (lighthit.x() * lighthit.x() + lighthit.z() * lighthit.z() < 0.25 && depth > 1)
             {
-                unsamps_cnt++;
                 ifHitLight = true;
             }
         }
@@ -265,7 +259,7 @@ int main(int argc, char *argv[]) {
 
                     Ray camRay = camera -> generateRay(Vector2f((x + dx), (y + dy)));
                     
-                    Vector3f r = radiance(&sceneParser, camRay, 0, ifUseNee) * (1.0 / (samps - unsamps_cnt));
+                    Vector3f r = radiance(&sceneParser, camRay, 0, ifUseNee) * (1.0 / samps);
                     color += r.clamp();
                 }
             }
