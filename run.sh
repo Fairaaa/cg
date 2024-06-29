@@ -2,7 +2,7 @@
 # You can comment some lines to disable the run of specific examples.
 mkdir -p output
 # build/PA1 testcases/scene01_basic.txt output/scene010.bmp 50
-build/PA1 testcases/scene02_glossy.txt output/scene02G.bmp 200
+build/PA1 testcases/scene02_glossy.txt output/scene02f004.bmp 400
 # build/PA1 testcases/scene03_sphere.txt output/scene03noNEE_100.bmp 100
 # build/PA1 testcases/scene03_sphere.txt output/scene03noNEE_200.bmp 200
 # build/PA1 testcases/scene03_sphere.txt output/scene03noNEE_500.bmp 500

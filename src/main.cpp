@@ -193,7 +193,7 @@ Vector3f radiance(SceneParser* sceneParser, const Ray &camRay, int depth, bool i
         Vector3f w_i = -camRay.getDirection(); // 入射光线方向
 
         // 菲涅尔反射系数
-        double F0 = 0.04;
+        double F0 = 0.04f;
         double F = F0 + (1 - F0) * pow(1 - Vector3f::dot(w_i, normal), 5);
         assert(F > 0.0);
 
