@@ -6,7 +6,7 @@ PerspectiveCamera {
     angle 30
     width 400
     height 400
-    focal 10
+    focal 8
     aperture 0.4
 }
 
