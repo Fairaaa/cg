@@ -52,6 +52,7 @@ Vector3f Emission(const Hit &hit, Vector3f point, bool ifNee = false)
     {
         return hit.getMaterial()->getEmission();
     }
+    return Vector3f::ZERO;
 }
 
 
@@ -217,7 +218,7 @@ Vector3f radiance(SceneParser* sceneParser, const Ray &camRay, int depth, bool i
         double D = (roughness2) / (M_PI * d * d);
 
         // BRDF
-        double BRDF = F * D / (4 * Vector3f::dot(normal, w_i) * Vector3f::dot(normal, w_o));
+        double BRDF = G * D / (4 * Vector3f::dot(normal, w_i) * Vector3f::dot(normal, w_o));
 
         // // 递归
         // assert(BRDF >= 0.0 && BRDF <= 1.0);
