@@ -193,7 +193,7 @@ Vector3f radiance(SceneParser* sceneParser, const Ray &camRay, int depth, bool i
         Vector3f w_i = -camRay.getDirection(); // 入射光线方向
 
         // 菲涅尔反射系数
-        double F0 = 0.9;
+        double F0 = 0.04;
         double F = F0 + (1 - F0) * pow(1 - Vector3f::dot(w_i, normal), 5);
         assert(F > 0.0);
 
@@ -207,7 +207,7 @@ Vector3f radiance(SceneParser* sceneParser, const Ray &camRay, int depth, bool i
         double G1v = Vector3f::dot(normal, v1) / (Vector3f::dot(normal, v1) * (1 - k) + k);
         double G1l = Vector3f::dot(normal, l1) / (Vector3f::dot(normal, l1) * (1 - k) + k);
         double G = G1v * G1l;
-        G = -G;
+        
 
 
         assert (G > 0.0);
@@ -218,7 +218,7 @@ Vector3f radiance(SceneParser* sceneParser, const Ray &camRay, int depth, bool i
         double D = (roughness2) / (M_PI * d * d);
 
         // BRDF
-        double BRDF = G / (4 * Vector3f::dot(normal, w_i) * Vector3f::dot(normal, w_o));
+        double BRDF = F * G  * D / (4 * Vector3f::dot(normal, w_i) * Vector3f::dot(normal, w_o));
 
         // // 递归
         // assert(BRDF >= 0.0 && BRDF <= 1.0);
@@ -329,8 +329,32 @@ int main(int argc, char *argv[]) {
 
                     Ray camRay = camera -> generateRay(Vector2f((x + dx), (y + dy)));
                     
-                    Vector3f r = radiance(&sceneParser, camRay, 0, ifUseNee) * (1.0 / (samps - unsamps_cnt));
-                    color += r.clamp();
+                    // 产生光线
+                    // 景深效果
+                    if(camera->getFocal() > 0)
+                    {
+                        float tp = camera->getFocal() / Vector3f::dot(camRay.getDirection(), camera->getDirection());
+                        Vector3f p = camRay.pointAtParameter(tp);
+                        for(int i = 0; i < 10; i++)
+                        {
+                            // 随机方向
+                            float r1 = 2 * M_PI * get_random();
+                            // 随机距离
+                            float r2 = get_random();
+                            float dx = sqrt(r2) * camera->getAperture() * cos(r1);
+                            float dy = sqrt(r2) * camera->getAperture() * sin(r1);
+                            Vector3f newCenter = camera->getCenter() + camera->getHorizontal() * dx/2 + camera->getUp() * dy/2;
+                            Vector3f newDir = (p - newCenter).normalized();
+                            Ray newRay = Ray(newCenter, newDir);
+                            Vector3f r = radiance(&sceneParser, newRay, 0, ifUseNee) * (1.0 / 10) * (1.0 / samps);
+                            color += r.clamp();                        
+                        }   
+                    }
+                    else
+                    {
+                        Vector3f r = radiance(&sceneParser, camRay, 0, ifUseNee) * (1.0 / (samps - unsamps_cnt));
+                        color += r.clamp();
+                    }
                 }
             }
             color = color / 4.0;
